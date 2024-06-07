@@ -1,0 +1,10 @@
+numpy
+scipy
+matplotlib
+astropy
+multiprocess
+tqdm
+msaexp
+grizli
+eazy
+numba
