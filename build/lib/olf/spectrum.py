@@ -601,8 +601,8 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
     fwhm_broad_percentile = np.nanpercentile(fwhm_broad_distr,q=[16,50,84])
 
     # print(z_percentile)
-    # print(fwhm_narrow_percentile)
-    # print(fwhm_broad_percentile)
+    print(fwhm_narrow_percentile)
+    print(fwhm_broad_percentile)
     
     sigma_z = np.median([z_percentile[2]-z_percentile[1],z_percentile[1]-z_percentile[0]])
     sigma_fwhm_narrow = np.median([fwhm_narrow_percentile[2]-fwhm_narrow_percentile[1],fwhm_narrow_percentile[1]-fwhm_narrow_percentile[0]])
@@ -615,8 +615,8 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
     fwhm_n_best = narrow_grid[best_idx[1]]
     fwhm_b_best = broad_grid[best_idx[2]]
     # zbest = z_percentile[1]
-    # fwhm_n_best = fwhm_narrow_percentile[1]
-    # fwhm_b_best = fwhm_broad_percentile[1]
+    fwhm_n_best = fwhm_narrow_percentile[1]
+    fwhm_b_best = fwhm_broad_percentile[1]
 
 
     vn_best = fwhm_n_best/(2*np.sqrt(2*np.log(2)))

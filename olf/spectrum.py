@@ -448,14 +448,31 @@ def adjust_spectrum(sampler):
             sampler.spec['flux'][i] = sampler.spec['flux'][i-1]
     return sampler
 
+
 def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_disp=1.3,id=None,
-                 custom_range=None,unlock_ratios=False,save_data=False,err_thresh=1.2,method='lstsq',correct_spectrum=False,
-                 exclude_lines=[],first_pass=False):
+                 custom_range=None,unlock_ratios=False,save_data=False,err_thresh=1.5,method='lstsq',correct_spectrum=False,
+                 exclude_lines=[],first_pass=False,allow_all_lines=0,savedir=None):
     import yaml
     from tqdm import tqdm
     import msaexp
 
     msaexp.spectrum.SCALE_UNCERTAINTY = [0.]
+
+    def get_pdf(prob, params_i, par_delta):
+        params_i = np.array(params_i)
+        diff_matrix = np.abs(params_i[:, None] - params_i)
+        mask_matrix = diff_matrix < par_delta
+        pdf = np.sum(prob * mask_matrix, axis=1)
+        return pdf / np.max(pdf)
+
+    def get_sigma(pdf, params_i):
+        half_max = 0.5
+        # Resample pdf on a finer grid
+        params_oversamp = np.linspace(params_i[0],params_i[-1],len(params_i)*100)
+        pdf_oversamp = np.interp(params_oversamp,params_i,pdf)
+        idx_hm = np.argmin(np.abs(pdf_oversamp-half_max))
+        sigma = np.abs(params_oversamp[idx_hm]-params_oversamp[np.argmax(pdf_oversamp)])
+        return sigma
     
 
     sampler = msaexp.spectrum.SpectrumSampler(file,err_mask=None, err_median_filter=None)
@@ -534,7 +551,8 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
                 
                 # templates_narrow, tline_narrow, _A_narrow = msaexp.spectrum.make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,scale_disp =scale_disp,grating=spec.grating)
                 templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,
-                                                                           scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,)
+                                                                           scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,
+                                                                           allow_all_lines=allow_all_lines)
                 templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
                                                                                broad_lines=broad_lines,scale_disp =scale_disp,grating=spec.grating)
                 
@@ -588,25 +606,25 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
     z_distr = []
     fwhm_narrow_distr = []
     fwhm_broad_distr = []
-
+    chi_sol = []
 
     for _idx in _idx_distr:
         z_distr.append(zgrid[_idx[0]])
         fwhm_narrow_distr.append(narrow_grid[_idx[1]])
         fwhm_broad_distr.append(broad_grid[_idx[2]])
-
-
-    z_percentile = np.nanpercentile(z_distr,q=[16,50,84])
-    fwhm_narrow_percentile = np.nanpercentile(fwhm_narrow_distr,q=[16,50,84])
-    fwhm_broad_percentile = np.nanpercentile(fwhm_broad_distr,q=[16,50,84])
-
-    # print(z_percentile)
-    # print(fwhm_narrow_percentile)
-    # print(fwhm_broad_percentile)
+        chi_sol.append(chi2_fit[tuple(_idx)])
     
+
+    # Get redshift uncertainty
+    z_percentile = np.nanpercentile(z_distr,q=[16,50,84])
     sigma_z = np.median([z_percentile[2]-z_percentile[1],z_percentile[1]-z_percentile[0]])
-    sigma_fwhm_narrow = np.median([fwhm_narrow_percentile[2]-fwhm_narrow_percentile[1],fwhm_narrow_percentile[1]-fwhm_narrow_percentile[0]])
-    sigma_fwhm_broad = np.median([fwhm_broad_percentile[2]-fwhm_broad_percentile[1],fwhm_broad_percentile[1]-fwhm_broad_percentile[0]])
+
+    # Now get uncertainty on velocities
+    prob = np.exp(-np.array(chi_sol)/2) # Compute the pdf
+    pdf_narrow = get_pdf(prob,fwhm_narrow_distr,np.ediff1d(narrow_grid)[0]) # Sum up 
+    pdf_broad = get_pdf(prob,fwhm_broad_distr,np.ediff1d(broad_grid)[0])
+    sigma_fwhm_narrow = get_sigma(pdf_narrow,fwhm_narrow_distr)
+    sigma_fwhm_broad = get_sigma(pdf_broad,fwhm_broad_distr)
     # --------------------------------------------
 
                                 
@@ -617,6 +635,10 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
     # zbest = z_percentile[1]
     # fwhm_n_best = fwhm_narrow_percentile[1]
     # fwhm_b_best = fwhm_broad_percentile[1]
+
+    if len(broad_lines)==0:
+        fwhm_b_best = -99.
+        sigma_fwhm_broad  = -99.
 
 
     vn_best = fwhm_n_best/(2*np.sqrt(2*np.log(2)))
@@ -635,7 +657,8 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
                 
     # templates_narrow, tline_narrow, _A_narrow = msaexp.spectrum.make_templates(sampler,z=zbest,bspl=bspl,vel_width=vn_best,scale_disp = scale_disp,grating=spec.grating)
     templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=zbest,bspl=bspl,vel_width=vn_best,scale_disp = scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,
-                                                               exclude_lines=exclude_lines)
+                                                               exclude_lines=exclude_lines,
+                                                               allow_all_lines=allow_all_lines)
     templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,zbest, broad_width=vb_best, broad_lines=broad_lines,scale_disp = scale_disp,grating=spec.grating)
 
     
@@ -745,10 +768,19 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
     # 'ra': float(spec.meta['srcra']),
     # 'dec': float(spec.meta['srcdec']),
     # 'name': str(spec.meta['srcname']),
+            
+    commstr = ''
+
+    if unlock_ratios:
+        commstr+= 'ratios_unlocked/'
+    if len(broad_lines)==0:
+       commstr+=  'narrow_only/'
+    
     data = {}
     data = {'z': float(zbest),
+            'z_guess':float(np.median(zgrid)),
             'err_z': float(sigma_z),
-            'id':src_id,
+            'id':int(src_id),
             'fwhm_narrow':float(fwhm_n_best),
             'err_fwhm_narrow':float(sigma_fwhm_narrow),
             'fwhm_broad':float(fwhm_b_best),
@@ -777,6 +809,7 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
             'contchi2': float(cont_chi2),
             'chi2red': float(chi2_fit[best_idx]/dof),
             'obs_eqwidth': eqwidth,
+            'comments': commstr,
            }
 
     # for k in ['coeffs', 'covar', 'model', 'mline', 'fullchi2', 'contchi2','eqwidth']:
@@ -790,18 +823,24 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
 
 
     if save_data:
-        if unlock_ratios:
-            suffix = '.ratios_unlocked'
+        # if unlock_ratios:
+        #     suffix = '.ratios_unlocked'
+        # else:
+        #     suffix = ''
+        # if len(broad_lines)==0:
+        #     suffix+='.narrow_only'
+        if savedir is None:
+            with open(froot+'.msaexp_broad.yaml', 'w') as fp:
+                yaml.dump(data, stream=fp)
         else:
-            suffix = ''
-        if len(broad_lines)==0:
-            suffix+='.narrow_only'
-        with open(froot+suffix+'.msaexp_broad.yaml', 'w') as fp:
-            yaml.dump(data, stream=fp)
+            name = f'{int(src_id)}_{spec.grating}'
+            with open(savedir+name+'.yaml', 'w') as fp:
+                yaml.dump(data, stream=fp)
+
 
 
     return data,sampler
-
+              
             
 def resample_custom_template(sampler,z,template,scale_disp,velocity_sigma,nsig=4,fnu=False):
     # Resamples the input tempalte to the spectral resolution given in the sampler
