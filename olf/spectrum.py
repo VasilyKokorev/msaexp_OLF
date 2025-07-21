@@ -37,7 +37,7 @@ print(f'matplotlib version = {matplotlib.__version__}')
 
 def make_templates(sampler, z, bspl={}, eazy_templates=None, vel_width=100, broad_width=4000, 
                    broad_lines=[], scale_disp=1.3, use_full_dispersion=False, disp=None, grating='prism', 
-                   halpha_prism=['Ha+NII'], oiii=['OIII'], o4363=[], sii=['SII'], lorentz=False, with_pah=True,unlock_ratios=False,exclude_lines=[], **kwargs):
+                   halpha_prism=['Ha+NII'], oiii=['OIII'], o4363=[], sii=['SII'], lorentz=False, with_pah=True,unlock_ratios=False,exclude_lines=[],extra_lines=[],allow_all_lines=0, **kwargs):
     """
     Generate fitting templates
     
@@ -110,6 +110,24 @@ def make_templates(sampler, z, bspl={}, eazy_templates=None, vel_width=100, broa
     
     if eazy_templates is None:
         lw, lr = utils.get_line_wavelengths()
+
+        # Added a few more custom iron lines
+
+        lw['FeII-7156'] = [7156.98]
+        lw['FeII-7173'] = [7173.981]
+        lw['FeII-8893'] = [8893.969]
+        lw['FeII-9125'] = [9125.259]
+        lw['FeII-9179'] = [9179.462]
+        lw['FeII-9204'] = [9204.529]
+        lw['FeII-9997'] = [9997.]
+
+        lr['FeII-7156'] = [1.0]
+        lr['FeII-7173'] = [1.0]
+        lr['FeII-8893'] = [1.0]
+        lr['FeII-9125'] = [1.0]
+        lr['FeII-9179'] = [1.0]
+        lr['FeII-9204'] = [1.0]
+        lr['FeII-9997'] = [1.0]
         
         _A = [bspl*1]
         for i in range(bspl.shape[0]):
@@ -121,59 +139,123 @@ def make_templates(sampler, z, bspl={}, eazy_templates=None, vel_width=100, broa
         #    templates[k] = bspl[k]
 
         # templates = {}
-        if grating in ['prism']:
-            hlines = ['Hb', 'Hg', 'Hd']
+        # if grating in ['prism']:
+        #     hlines = ['Hb', 'Hg', 'Hd']
             
-            if z > 4:
-                oiii = ['OIII-4959','OIII-5007']
-                hene = ['HeII-4687', 'NeIII-3867','HeI-3889']
-                o4363 = ['OIII-4363']
+        #     if z > 4:
+        #         oiii = ['OIII-4959','OIII-5007']
+        #         hene = ['HeII-4687', 'NeIII-3867','HeI-3889']
+        #         o4363 = ['OIII-4363']
                 
-            else:
-                #oiii = ['OIII']
-                hene = ['HeI-3889']
-                #o4363 = []
+        #     else:
+        #         #oiii = ['OIII']
+        #         hene = ['HeI-3889']
+        #         #o4363 = []
                 
-            #sii = ['SII']
-            #sii = ['SII-6717', 'SII-6731']
+        #     #sii = ['SII']
+        #     #sii = ['SII-6717', 'SII-6731']
             
-            hlines += halpha_prism + ['NeIII-3968']
-            fuv = ['OIII-1663']
-            oii_7320 = ['OII-7325']
-            extra = []
+        #     hlines += halpha_prism + ['NeIII-3968']
+        #     fuv = ['OIII-1663']
+        #     oii_7320 = ['OII-7325']
+        #     extra = []
             
-        else:
-            hlines = ['Hb', 'Hg', 'Hd','H8','H9', 'H10', 'H11', 'H12']
+        # else:
+        #     hlines = ['Hb', 'Hg', 'Hd','H8','H9', 'H10', 'H11', 'H12']
             
-            hene = ['HeII-4687', 'NeIII-3867']
-            o4363 = ['OIII-4363']
-            oiii = ['OIII-4959','OIII-5007']
-            sii = ['SII-6717', 'SII-6731']
-            hlines += ['Ha', 'NII-6549', 'NII-6584']
-            hlines += ['H7', 'NeIII-3968']
-            fuv = ['OIII-1663', 'HeII-1640', 'CIV-1549']
-            oii_7320 = ['OII-7323', 'OII-7332']
+        #     hene = ['HeII-4687', 'NeIII-3867']
+        #     o4363 = ['OIII-4363']
+        #     oiii = ['OIII-4959','OIII-5007']
+        #     sii = ['SII-6717', 'SII-6731']
+        #     hlines += ['Ha', 'NII-6549', 'NII-6584']
+        #     hlines += ['H7', 'NeIII-3968']
+        #     fuv = ['OIII-1663', 'HeII-1640', 'CIV-1549']
+        #     oii_7320 = ['OII-7323', 'OII-7332']
             
-            extra = ['HeI-6680', 'SIII-6314','NeIV']
+        #     extra = ['HeI-6680', 'SIII-6314','NeIV']
+        #     if len(extra_lines)>0:
+        #         extra+=extra_lines
             
         line_names = []
         line_waves = []
-        
-        for l in [*hlines, *oiii, *o4363, 'OII',
-                  *hene, 
-                  *sii,
-                  *oii_7320,
-                  'ArIII-7138', 'ArIII-7753', 'SIII-9068', 'SIII-9531',
-                  'OI-6302', 'PaD', 'PaG', 'PaB', 'PaA', 'HeI-1083',
-                  'BrA','BrB','BrG','BrD','PfB','PfG','PfD','PfE',
-                  'Pa8','Pa9','Pa10',
-                  'HeI-5877', 
-                  *fuv,
-                  'CIII-1906', 'NIII-1750', 'Lya',
-                  'MgII', 'NeV-3346', 'NeVI-3426',
-                  'HeI-7065', 'HeI-8446',
-                  *extra
-                   ]:
+
+        if allow_all_lines:
+            # Use all available lines from the line wavelength dictionary
+            # but filter out composite/template names and weird entries
+            bad_patterns = ['+', 'Balmer', 'full', 'kK', 'Av=', 'highO32', 'lowO32','t0.', 't1']
+            
+            available_lines = []
+            filtered_out = []
+            
+            for line_name in lw.keys():
+                # Check if this line name contains any bad patterns
+                is_bad = any(bad_pattern in line_name for bad_pattern in bad_patterns)
+                
+                if is_bad:
+                    filtered_out.append(line_name)  # Track what we're filtering out
+                else:
+                    available_lines.append(line_name)  # Keep the good ones
+            
+            # print(f"Debug: Filtered out {len(filtered_out)} weird line names")
+            # print(f"Debug: Using {len(available_lines)} clean line names")
+            # if len(filtered_out) > 0:
+            #     print(f"Debug: Filtered out: {filtered_out[:5]}{'...' if len(filtered_out) > 5 else ''}")
+        else:
+            # Use the predefined line list based on grating
+            if grating in ['prism']:
+                hlines = ['Hb', 'Hg', 'Hd']
+                
+                if z > 4:
+                    oiii = ['OIII-4959','OIII-5007']
+                    hene = ['HeII-4687', 'NeIII-3867','HeI-3889']
+                    o4363 = ['OIII-4363']
+                    
+                else:
+                    #oiii = ['OIII']
+                    hene = ['HeI-3889']
+                    #o4363 = []
+                    
+                #sii = ['SII']
+                #sii = ['SII-6717', 'SII-6731']
+                
+                hlines += halpha_prism + ['NeIII-3968']
+                fuv = ['OIII-1663']
+                oii_7320 = ['OII-7325']
+                extra = []
+                
+            else:
+                hlines = ['Hb', 'Hg', 'Hd','H8','H9', 'H10', 'H11', 'H12']
+                
+                hene = ['HeII-4687', 'NeIII-3867']
+                o4363 = ['OIII-4363']
+                oiii = ['OIII-4959','OIII-5007']
+                sii = ['SII-6717', 'SII-6731']
+                hlines += ['Ha', 'NII-6549', 'NII-6584']
+                hlines += ['H7', 'NeIII-3968']
+                fuv = ['OIII-1663', 'HeII-1640', 'CIV-1549']
+                oii_7320 = ['OII-7323', 'OII-7332']
+                
+                extra = ['HeI-6680', 'SIII-6314','NeIV',]
+                if len(extra_lines)>0:
+                    extra+=extra_lines
+            
+            available_lines = [*hlines, *oiii, *o4363, 'OII',
+                              *hene, 
+                              *sii,
+                              *oii_7320,
+                              'ArIII-7138', 'ArIII-7753', 'SIII-9068', 'SIII-9531',
+                              'OI-6302', 'PaD', 'PaG', 'PaB', 'PaA', 'HeI-1083',
+                              'BrA','BrB','BrG','BrD','PfB','PfG','PfD','PfE',
+                              'Pa8','Pa9','Pa10',
+                              'HeI-5877', 
+                              *fuv,
+                              'CIII-1906', 'NIII-1750', 'Lya',
+                              'MgII', 'NeV-3346', 'NeVI-3426',
+                              'HeI-7065',
+                              *extra
+                               ]
+
+        for l in available_lines:
 
             if l in exclude_lines:
                 continue
@@ -451,10 +533,13 @@ def adjust_spectrum(sampler):
 
 def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_disp=1.3,id=None,
                  custom_range=None,unlock_ratios=False,save_data=False,err_thresh=1.5,method='lstsq',correct_spectrum=False,
-                 exclude_lines=[],first_pass=False,allow_all_lines=0,savedir=None):
+                 exclude_lines=[],first_pass=False,allow_all_lines=0,savedir=None,extra_lines=[]):
     import yaml
     from tqdm import tqdm
     import msaexp
+
+    if len(extra_lines)>0:
+        print('Adding extra lines',extra_lines)
 
     msaexp.spectrum.SCALE_UNCERTAINTY = [0.]
 
@@ -540,25 +625,71 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
 
     # Loop to create and fit all models
 
+    # NEW
+    # ---------------------------
+    print('Pre-computing templates for all redshifts...')
+    template_cache = {}
+    for i, z_i in enumerate(zgrid):
+        vn_dummy = narrow_grid[0]/(2*np.sqrt(2*np.log(2)))  # Use first velocity
+        templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_dummy,
+                                                                   scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,
+                                                                   allow_all_lines=allow_all_lines,extra_lines=extra_lines)
+        template_cache[z_i] = (templates_narrow, tline_narrow, _A_narrow.copy())
+    # ---------------------------
+
+    # for i, z_i in tqdm(enumerate(zgrid)):
+    #     for j,fwhm_n_i in enumerate(narrow_grid):
+    #         for k,fwhm_b_i in enumerate(broad_grid):
+
+    #             vn_i = fwhm_n_i/(2*np.sqrt(2*np.log(2)))
+    #             vb_i = fwhm_b_i/(2*np.sqrt(2*np.log(2)))
+                
+    #             templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,
+    #                                                                        scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,
+    #                                                                        allow_all_lines=allow_all_lines,extra_lines=extra_lines)
+    #             templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
+    #                                                                            broad_lines=broad_lines,scale_disp =scale_disp,grating=spec.grating)
+
     for i, z_i in tqdm(enumerate(zgrid)):
+        # Get pre-computed templates
+        templates_narrow_base, tline_narrow, _A_narrow_base = template_cache[z_i]
+        vn_cached = narrow_grid[0]/(2*np.sqrt(2*np.log(2)))
+        
         for j,fwhm_n_i in enumerate(narrow_grid):
             for k,fwhm_b_i in enumerate(broad_grid):
-
-                # cntr+=1
 
                 vn_i = fwhm_n_i/(2*np.sqrt(2*np.log(2)))
                 vb_i = fwhm_b_i/(2*np.sqrt(2*np.log(2)))
                 
-                # templates_narrow, tline_narrow, _A_narrow = msaexp.spectrum.make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,scale_disp =scale_disp,grating=spec.grating)
-                templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,
-                                                                           scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,
-                                                                           allow_all_lines=allow_all_lines)
-                templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
-                                                                               broad_lines=broad_lines,scale_disp =scale_disp,grating=spec.grating)
-                
-                # templates,tline, _A =  make_templates(sampler,z=z,narrow_fwhm=vn,broad_fwhm=vb,broad_lines=broad_lines,scale_disp=1.3,grating=spec.grating,bspl=bspl,oversamp=oversamp)
-                # templates_broad,tline_broad, _A_broad =  make_templates(sampler,z=z,narrow_fwhm=vn,broad_fwhm=vb,broad_lines=broad_lines,just_broad=True,scale_disp=1.3,grating=spec.grating,bspl=bspl,oversamp=oversamp)
+                # Only recompute if velocity changed significantly from cached version
+                if abs(vn_i - vn_cached) > 0.1 * vn_cached:  # 10% change threshold
+                    templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=z_i,bspl=bspl,vel_width=vn_i,
+                                                                               scale_disp=scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,exclude_lines=exclude_lines,
+                                                                               allow_all_lines=allow_all_lines,extra_lines=extra_lines)
+                else:
+                    templates_narrow = templates_narrow_base
+                    _A_narrow = _A_narrow_base.copy()
 
+                if len(broad_lines) > 0:
+                    if not hasattr(fit_spectrum, '_broad_cache'):
+                        fit_spectrum._broad_cache = {}
+                    
+                    broad_key = (z_i, vb_i)
+                    if broad_key in fit_spectrum._broad_cache:
+                        templates_broad, tline_broad, _A_broad = fit_spectrum._broad_cache[broad_key]
+                    else:
+                        templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
+                                                                                       broad_lines=broad_lines,scale_disp=scale_disp,grating=spec.grating)
+                        fit_spectrum._broad_cache[broad_key] = (templates_broad, tline_broad, _A_broad.copy())
+                else:
+                    templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
+                                                                                   broad_lines=broad_lines,scale_disp=scale_disp,grating=spec.grating)
+
+                    
+                # templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,z=z_i, broad_width=vb_i,
+                #                                                                broad_lines=broad_lines,scale_disp =scale_disp,grating=spec.grating)
+     
+        
                 if len(templates_broad)>0:
                     templates = templates_narrow+templates_broad
                     tline =  np.append(tline_narrow, tline_broad)
@@ -591,7 +722,7 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
                 chi2_i = (chi[mask]**2).sum()
 
                 chi2_fit[i,j,k] = chi2_i
-                # coeffs_fit[i,j,k] = coeffs
+        
 
     best_idx = np.unravel_index(np.argmin(chi2_fit),chi2_fit.shape)
     dof = len(_yx[mask]-len(templates))
@@ -657,8 +788,7 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
                 
     # templates_narrow, tline_narrow, _A_narrow = msaexp.spectrum.make_templates(sampler,z=zbest,bspl=bspl,vel_width=vn_best,scale_disp = scale_disp,grating=spec.grating)
     templates_narrow, tline_narrow, _A_narrow = make_templates(sampler,z=zbest,bspl=bspl,vel_width=vn_best,scale_disp = scale_disp,grating=spec.grating,unlock_ratios=unlock_ratios,
-                                                               exclude_lines=exclude_lines,
-                                                               allow_all_lines=allow_all_lines)
+                                                               exclude_lines=exclude_lines, allow_all_lines=allow_all_lines)
     templates_broad, tline_broad, _A_broad = make_broad_templates(sampler,zbest, broad_width=vb_best, broad_lines=broad_lines,scale_disp = scale_disp,grating=spec.grating)
 
     
@@ -715,21 +845,73 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
 
     lw, lr = utils.get_line_wavelengths()
 
+    # Replace the covariance calculation section with this more robust version:
+
     try:
-        oktemp = okt & (coeffs != 0)
-            
+        # When allow_all_lines=1, we might have too many weak lines
+        # Filter out very weak lines before covariance calculation
+        if allow_all_lines:
+            # Calculate signal-to-noise ratio for line coefficients
+            line_mask = tline & (coeffs != 0)
+            if line_mask.sum() > 0:
+                # Rough estimate of coefficient uncertainties from residuals
+                residual_std = np.std((flam - _model)[mask])
+                snr_threshold = 0.5  # Minimum SNR to include in covariance
+                
+                # Only keep lines with reasonable signal
+                significant_lines = np.abs(coeffs) > (snr_threshold * residual_std)
+                oktemp = okt & significant_lines
+            else:
+                oktemp = okt & (coeffs != 0)
+        else:
+            oktemp = okt & (coeffs != 0)
+        
+        # Make sure we have enough templates for covariance calculation
+        if oktemp.sum() < 2:
+            print(f"Debug: Too few significant templates ({oktemp.sum()}) for covariance calculation")
+            raise ValueError("Insufficient templates for covariance")
+        
+        print(f"Debug: Using {oktemp.sum()} out of {len(templates)} templates for covariance")
+        
         AxT = (_A[oktemp,:]/eflam)[:,mask].T
-    
-        covar_i = utils.safe_invert(np.dot(AxT.T, AxT))
+        
+        # Check matrix conditioning
+        matrix_to_invert = np.dot(AxT.T, AxT)
+        cond_number = np.linalg.cond(matrix_to_invert)
+        
+        if cond_number > 1e12:  # Poorly conditioned
+            print(f"Debug: Matrix is poorly conditioned (cond={cond_number:.2e}), using pseudo-inverse")
+            covar_i = np.linalg.pinv(matrix_to_invert)
+        else:
+            covar_i = utils.safe_invert(matrix_to_invert)
+        
         covar = utils.fill_masked_covar(covar_i, oktemp)
-        covard = np.sqrt(covar.diagonal())
+        covard = np.sqrt(np.maximum(covar.diagonal(), 0))
             
         has_covar = True
-    except:
+        
+    except Exception as e:
+        print(f"Debug: Covariance calculation failed: {e}")
         has_covar = False
         covard = coeffs*0.
         N = len(templates)
         covar = np.eye(N, N)
+
+    # try:
+    #     oktemp = okt & (coeffs != 0)
+            
+    #     AxT = (_A[oktemp,:]/eflam)[:,mask].T
+    
+    #     covar_i = utils.safe_invert(np.dot(AxT.T, AxT))
+    #     covar = utils.fill_masked_covar(covar_i, oktemp)
+    #     covard = np.sqrt(covar.diagonal())
+            
+    #     has_covar = True
+    # except:
+    #     has_covar = False
+    #     covard = coeffs*0.
+    #     N = len(templates)
+    #     covar = np.eye(N, N)
 
 
     print(f'\n# line flux err\n# flux x 10^-20 erg/s/cm2')
@@ -754,16 +936,51 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
             # so observed-frame equivalent width is roughly
             # eqwi = coeffs[i] / _mcont[ wave_obs[i] ]
             
+            # if lk in lw:
+            #     lwi = lw[lk][0]*(1+zbest)/1.e4
+            #     continuum_i = np.interp(lwi, spec['wave'], _mcont)
+            #     eqwi = coeffs[i]/continuum_i
+            # else:
+            #     eqwi = np.nan
+            
+            # eqwidth[t] = [float(eqwi)]
+            
+            # print(f'{t:>20}   {coeffs[i]:8.1f} ± {covard[i]:8.1f} (EW={eqwi:9.1f})')
+
+            lw, lr = utils.get_line_wavelengths()
+            
+            # Add custom FeII lines again since we need them for EW calculation
+            lw['FeII-7156'] = [7156.98]
+            lw['FeII-7173'] = [7173.981]
+            lw['FeII-8893'] = [8893.969]
+            lw['FeII-9125'] = [9125.259]
+            lw['FeII-9179'] = [9179.462]
+            lw['FeII-9204'] = [9204.529]
+            lw['FeII-9997'] = [9997.]
+            lr['FeII-7156'] = [1.0]
+            lr['FeII-7173'] = [1.0]
+            lr['FeII-8893'] = [1.0]
+            lr['FeII-9125'] = [1.0]
+            lr['FeII-9179'] = [1.0]
+            lr['FeII-9204'] = [1.0]
+            lr['FeII-9997'] = [1.0]
             if lk in lw:
                 lwi = lw[lk][0]*(1+zbest)/1.e4
                 continuum_i = np.interp(lwi, spec['wave'], _mcont)
                 eqwi = coeffs[i]/continuum_i
+                
+                # Calculate EW error using error propagation
+                if continuum_i > 0 and coeffs[i] != 0:
+                    eqwi_err = np.abs(eqwi) * (covard[i] / np.abs(coeffs[i]))
+                else:
+                    eqwi_err = np.nan
             else:
                 eqwi = np.nan
+                eqwi_err = np.nan
             
-            eqwidth[t] = [float(eqwi)]
+            eqwidth[t] = [float(eqwi), float(eqwi_err)]  # Now stores [EW, EW_err]
             
-            print(f'{t:>20}   {coeffs[i]:8.1f} ± {covard[i]:8.1f} (EW={eqwi:9.1f})')
+            print(f'{t:>20}   {coeffs[i]:8.1f} ± {covard[i]:8.1f} (EW={eqwi:9.1f} ± {eqwi_err:9.1f})')
 
     # 'ra': float(spec.meta['srcra']),
     # 'dec': float(spec.meta['srcdec']),
