@@ -115,20 +115,28 @@ def make_templates(sampler, z, bspl={}, eazy_templates=None, vel_width=100, broa
 
         lw['FeII-7156'] = [7156.98]
         lw['FeII-7173'] = [7173.981]
+        lw['FeII-8228'] = [8228.930]
         lw['FeII-8893'] = [8893.969]
         lw['FeII-9125'] = [9125.259]
+        lw['FeII-9134'] = [9134.89]
         lw['FeII-9179'] = [9179.462]
         lw['FeII-9204'] = [9204.529]
         lw['FeII-9997'] = [9997.]
+        lw['FeII-10490'] = [10490.999]
+        lw['FeII-10501'] = [10501.520]
 
         lr['FeII-7156'] = [1.0]
         lr['FeII-7173'] = [1.0]
+        lr['FeII-8228'] = [1.0]
         lr['FeII-8893'] = [1.0]
         lr['FeII-9125'] = [1.0]
+        lr['FeII-9134'] = [1.0]
         lr['FeII-9179'] = [1.0]
         lr['FeII-9204'] = [1.0]
         lr['FeII-9997'] = [1.0]
-        
+        lr['FeII-10490'] = [1.0]
+        lr['FeII-10501'] = [1.0]
+
         _A = [bspl*1]
         for i in range(bspl.shape[0]):
             templates.append(f'spl {i}')
@@ -952,18 +960,28 @@ def fit_spectrum(file,nspline,zgrid,narrow_grid,broad_grid,broad_lines,scale_dis
             # Add custom FeII lines again since we need them for EW calculation
             lw['FeII-7156'] = [7156.98]
             lw['FeII-7173'] = [7173.981]
+            lw['FeII-8228'] = [8228.930]
             lw['FeII-8893'] = [8893.969]
             lw['FeII-9125'] = [9125.259]
+            lw['FeII-9134'] = [9134.89]
             lw['FeII-9179'] = [9179.462]
             lw['FeII-9204'] = [9204.529]
             lw['FeII-9997'] = [9997.]
+            lw['FeII-10490'] = [10490.999]
+            lw['FeII-10501'] = [10501.520]
+
             lr['FeII-7156'] = [1.0]
             lr['FeII-7173'] = [1.0]
+            lr['FeII-8228'] = [1.0]
             lr['FeII-8893'] = [1.0]
             lr['FeII-9125'] = [1.0]
+            lr['FeII-9134'] = [1.0]
             lr['FeII-9179'] = [1.0]
             lr['FeII-9204'] = [1.0]
             lr['FeII-9997'] = [1.0]
+            lr['FeII-10490'] = [1.0]
+            lr['FeII-10501'] = [1.0]
+                    
             if lk in lw:
                 lwi = lw[lk][0]*(1+zbest)/1.e4
                 continuum_i = np.interp(lwi, spec['wave'], _mcont)
